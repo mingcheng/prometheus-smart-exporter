@@ -1,9 +1,10 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/labstack/echo/v4"
 	exporter "github.com/mingcheng/prometheus-smart-exporter"
-	"net/http"
 )
 
 func main() {
@@ -26,5 +27,5 @@ func main() {
 	})
 
 	// Start server
-	e.Start(":9111")
+	_ = e.Start(":9111")
 }
