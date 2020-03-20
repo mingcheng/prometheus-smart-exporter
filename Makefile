@@ -20,11 +20,10 @@ build: packr2 $(DIR_SRC)
 	@$(GOPATH)/bin/packr2 build
 	@$(GO) build $(GO_FLAGS) -o $(BIN) $(DIR_SRC)
 
-test:
-	@$(GO) test ./...
-
-# clean all build result
-clean:
+clean: packr2
 	@packr2 clean
 	@rm -f $(BIN)
 	@$(GO) clean ./...
+
+test:
+	@$(GO) test ./...

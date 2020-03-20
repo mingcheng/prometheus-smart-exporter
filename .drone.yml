@@ -13,4 +13,5 @@ steps:
     environment:
       GOPROXY: https://goproxy.cn
     commands:
-      - make
+      - make clean
+      - make build
