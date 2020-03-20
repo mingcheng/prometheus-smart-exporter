@@ -1,4 +1,4 @@
-.PHONY: all build clean test
+.PHONY: all build clean test packr2
 
 VERSION=0.0.1
 BIN=./smart-exporter
@@ -12,8 +12,12 @@ GOPATH=$(shell `which go` env GOPATH)
 
 all: clean build
 
-build:$(DIR_SRC)
-	@packr2 build
+packr2:
+	@go get -u github.com/gobuffalo/packr/v2/...
+	@go get -u github.com/gobuffalo/packr/v2/packr2
+
+build: packr2 $(DIR_SRC)
+	@$(GOPATH)/bin/packr2 build
 	@$(GO) build $(GO_FLAGS) -o $(BIN) $(DIR_SRC)
 
 test:
