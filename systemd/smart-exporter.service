@@ -1,0 +1,9 @@
+[Unit]
+Description=S.M.A.R.T exporter for Prometheus
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/smart-exporter
+
+[Install]
+WantedBy=network-online.target
