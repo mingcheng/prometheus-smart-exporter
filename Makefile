@@ -23,5 +23,6 @@ clean: pkger
 	@rm -f $(BIN) ./pkged.go
 	@$(GO) clean ./...
 
-test:
+test: build
 	@$(GO) test ./...
+	@./scripts/test.sh

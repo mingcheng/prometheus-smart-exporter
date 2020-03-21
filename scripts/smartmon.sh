@@ -155,7 +155,7 @@ parse_smartctl_info() {
       sector_size_log="$(echo "$info_value" | cut -d' ' -f1)"
       sector_size_phy="$(echo "$info_value" | cut -d' ' -f4)"
     elif [[ "${info_type}" == 'User_Capacity' ]]; then
-      user_capacity="$(echo "$info_value" | cut -d ' ' -f1  | sed 's/,//g' | awk '{$1=$1};1')"
+      user_capacity="$(echo "$info_value" | cut -d ' ' -f1 | sed 's/,//g' | awk '{$1=$1};1')"
     fi
   done
   echo "device_smart_available{${labels}} ${smart_available}"

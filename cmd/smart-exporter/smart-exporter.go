@@ -28,7 +28,7 @@ func main() {
 		if script, err := exporter.GetScript(); err != nil {
 			panic(err)
 		} else {
-			fmt.Println(script)
+			fmt.Print(script)
 		}
 		return
 	}

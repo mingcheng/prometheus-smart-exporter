@@ -15,5 +15,5 @@ steps:
     commands:
       - make clean
       - make build
-      - ./smart-exporter --script
       - ./smart-exporter --version
+      - make test

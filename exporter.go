@@ -1,7 +1,6 @@
 package prometheus_smart_exporter
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os/exec"
 	"time"
@@ -30,7 +29,6 @@ func GetScript() (string, error) {
 	if output, err := ioutil.ReadAll(file); err != nil {
 		return "", err
 	} else {
-		fmt.Println(string(output))
 		return string(output), nil
 	}
 }
