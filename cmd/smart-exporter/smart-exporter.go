@@ -15,11 +15,21 @@ var (
 )
 
 func main() {
-	printVersion := flag.Bool("version", false, "help message for flagname")
+	printVersion := flag.Bool("version", false, "print version message and exit")
+	printScript := flag.Bool("script", false, "dump script content and exit")
 	flag.Parse()
 
 	if *printVersion {
 		fmt.Printf("Version %s, Build on %s\n", version, buildTime)
+		return
+	}
+
+	if *printScript {
+		if script, err := exporter.GetScript(); err != nil {
+			panic(err)
+		} else {
+			fmt.Println(script)
+		}
 		return
 	}
 

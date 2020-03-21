@@ -12,6 +12,8 @@ tmp
 .idea/
 vendor/
 /dist
+/smart-exporter
+/pkged.go
 
 # Architecture specific extensions/prefixes
 trace.out
