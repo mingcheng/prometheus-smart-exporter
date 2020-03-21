@@ -43,8 +43,10 @@ wear_leveling_count
 nand_writes_1gib
 offline_uncorrectable
 power_cycle_count
+power_cycles
 power_on_hours
 power_on_hours_and_msec
+unsafe_shutdowns
 program_fail_count
 raw_read_error_rate
 reallocated_event_count
@@ -80,15 +82,15 @@ parse_smartctl_attributes() {
 parse_smartctl_scsi_attributes() {
   local labels="$1"
   while read line; do
-    #    attr_type="$(echo "${line}" | tr '=' ':' | cut -f1 -d: | sed 's/^ \+//g' | tr ' ' '_')"
-    #    attr_value="$(echo "${line}" | tr '=' ':' | cut -f2 -d: | sed 's/^ \+//g')"
     attr_type="$(echo "${line}" | tr '=' ':' | cut -f1 -d: | awk '{$1=$1};1' | tr ' ' '_')"
     attr_value="$(echo "${line}" | tr '=' ':' | cut -f2 -d: | awk '{$1=$1};1')"
     case "${attr_type}" in
     number_of_hours_powered_up_) power_on="$(echo "${attr_value}" | awk '{ printf "%e\n", $1 }')" ;;
-    Current_Drive_Temperature) temp_cel="$(echo ${attr_value} | cut -f1 -d' ' | awk '{ printf "%e\n", $1 }')" ;;
+    Current_Drive_Temperature | Temperature) temp_cel="$(echo ${attr_value} | cut -f1 -d' ' | awk '{ printf "%e\n", $1 }')" ;;
     Blocks_sent_to_initiator_) lbas_read="$(echo ${attr_value} | awk '{ printf "%e\n", $1 }')" ;;
+    Data_Units_Read) lbas_read="$(echo ${attr_value} | cut -d ' ' -f1 | sed 's/,//g' | awk '{$1=$1};1')" ;;
     Blocks_received_from_initiator_) lbas_written="$(echo ${attr_value} | awk '{ printf "%e\n", $1 }')" ;;
+    Data_Units_Written) lbas_written="$(echo ${attr_value} | cut -d ' ' -f1 | sed 's/,//g' | awk '{$1=$1};1')" ;;
     Accumulated_start-stop_cycles) power_cycle="$(echo ${attr_value} | awk '{ printf "%e\n", $1 }')" ;;
     Elements_in_grown_defect_list) grown_defects="$(echo ${attr_value} | awk '{ printf "%e\n", $1 }')" ;;
     esac
@@ -105,16 +107,22 @@ extract_labels_from_smartctl_info() {
   local disk="$1" disk_type="$2"
   local model_family='<None>' device_model='<None>' serial_number='<None>' fw_version='<None>' vendor='<None>' product='<None>' revision='<None>' lun_id='<None>' rotation_rate='<None>'
   while read line; do
-    info_type="$(echo "${line}" | cut -f1 -d: | tr ' ' '_')"
+    info_type="$(echo "${line}" | cut -f1 -d: | tr ' ' '_' | tr '/' '_')"
     # @see https://unix.stackexchange.com/questions/102008/how-do-i-trim-leading-and-trailing-whitespace-from-each-line-of-some-output
     #info_value="$(echo "${line}" | cut -f2- -d: | sed 's/^ \+//g' | sed 's/"/\\"/')"
-    info_value="$(echo "${line}" | cut -f2- -d: | awk '{$1=$1};1')"
+    info_value="$(echo "${line}" | cut -f2- -d: | awk '{$1=$1};1' | tr '\"' ' ')"
     case "${info_type}" in
     Model_Family) model_family="${info_value}" ;;
-    Device_Model) device_model="$(echo ${info_value} | awk '{$1=$1};1')" ;;
+    Model_Number)
+      model_family="${info_value}"
+      device_model="${info_value}"
+      product="${info_value}"
+      ;;
+    Device_Model) device_model="${info_value}" ;;
     Serial_Number) serial_number="${info_value}" ;;
     Firmware_Version) fw_version="${info_value}" ;;
     Vendor) vendor="${info_value}" ;;
+    PCI_Vendor_Subsystem_ID) vendor="${info_value}" ;;
     Product) product="${info_value}" ;;
     Revision) revision="${info_value}" ;;
     Logical_Unit_id) lun_id="${info_value}" ;;
@@ -129,7 +137,7 @@ parse_smartctl_info() {
   local -i sector_size_log=512 sector_size_phy=512 user_capacity=0
   local labels="$1"
   while read line; do
-    info_type="$(echo "${line}" | cut -f1 -d: | tr ' ' '_')"
+    info_type="$(echo "${line}" | cut -f1 -d: | tr ' ' '_' | tr '/' '_')"
     # @see https://unix.stackexchange.com/questions/102008/how-do-i-trim-leading-and-trailing-whitespace-from-each-line-of-some-output
     #info_value="$(echo "${line}" | cut -f2- -d: | sed 's/^ \+//g' | sed 's/"/\\"/')"
     info_value="$(echo "${line}" | cut -f2- -d: | awk '{$1=$1};1')"
@@ -151,10 +159,10 @@ parse_smartctl_info() {
     elif [[ "${info_type}" == 'Sector_Size' ]]; then
       sector_size_log=$(echo "$info_value" | cut -d' ' -f1)
       sector_size_phy=$(echo "$info_value" | cut -d' ' -f1)
-    elif [[ "${info_type}" == 'Sector_Sizes' ]]; then
+    elif [[ "${info_type}" == 'Sector_Sizes' || "${info_type}" == 'Namespace_1_Formatted_LBA_Size' ]]; then
       sector_size_log="$(echo "$info_value" | cut -d' ' -f1)"
       sector_size_phy="$(echo "$info_value" | cut -d' ' -f4)"
-    elif [[ "${info_type}" == 'User_Capacity' ]]; then
+    elif [[ "${info_type}" == 'User_Capacity' || "${info_type}" == 'Namespace_1_Size_Capacity' ]]; then
       user_capacity="$(echo "$info_value" | cut -d ' ' -f1 | sed 's/,//g' | awk '{$1=$1};1')"
     fi
   done
@@ -205,17 +213,47 @@ format_output() {
 smartctl_version="$(smartctl -V | head -n1 | awk '$1 == "smartctl" {print $2}')"
 
 echo "smartctl_version{version=\"${smartctl_version}\"} 1" | format_output
-
 if [[ "$(expr "${smartctl_version}" : '\([0-9]*\)\..*')" -lt 6 ]]; then
   exit
 fi
 
+## Start to scaning and checking devices
 device_list="$(smartctl --scan-open | awk '/^\/dev/{print $1 "|" $3}')"
 
-for device in ${device_list}; do
+## Merge extra devices
+merge_devices() {
+  for device in $@; do
+    local exists=0
+    for d in ${device_list}; do
+      d="$(echo ${d} | cut -f1 -d'|')"
+      if [ ${device} = ${d} ]; then
+        exists=1
+      fi
+    done
 
+    # add none exists disk
+    if [ $exists -eq 0 ]; then
+      device_list+=("${device}|auto")
+    fi
+  done
+}
+
+case $(uname -s | tr '[:upper:]' '[:lower:]') in
+'darwin')
+  merge_devices $(diskutil list | grep 'internal, physical' | awk '{print $1}')
+  ;;
+'linux')
+  merge_devices $(lsblk -p | grep disk | awk '{print $1}')
+  ;;
+'freebsd')
+  merge_devices $(geom disk list | grep 'Name: ' | awk '{print $3}' | sed 's/^/\/dev\//')
+  ;;
+esac
+
+for device in ${device_list[@]}; do
   disk="$(echo ${device} | cut -f1 -d'|')"
   type="$(echo ${device} | cut -f2 -d'|')"
+
   active=1
   echo "smartctl_run{disk=\"${disk}\",type=\"${type}\"}" "$(TZ=UTC date '+%s')"
 
@@ -241,7 +279,7 @@ for device in ${device_list}; do
 
   # Get the SMART attributes
   case ${type} in
-  atacam | sat) smartctl -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk_labels}" || true ;;
+  atacam | sat | auto) smartctl -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk_labels}" || true ;;
   sat+megaraid*) smartctl -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk_labels}" || true ;;
   scsi) smartctl -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk_labels}" || true ;;
   megaraid*) smartctl -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk_labels}" || true ;;
