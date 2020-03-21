@@ -44,6 +44,7 @@ nand_writes_1gib
 offline_uncorrectable
 power_cycle_count
 power_on_hours
+power_on_hours_and_msec
 program_fail_count
 raw_read_error_rate
 reallocated_event_count
@@ -102,7 +103,7 @@ parse_smartctl_scsi_attributes() {
 
 extract_labels_from_smartctl_info() {
   local disk="$1" disk_type="$2"
-  local model_family='<None>' device_model='<None>' serial_number='<None>' fw_version='<None>' vendor='<None>' product='<None>' revision='<None>' lun_id='<None>'
+  local model_family='<None>' device_model='<None>' serial_number='<None>' fw_version='<None>' vendor='<None>' product='<None>' revision='<None>' lun_id='<None>' rotation_rate='<None>'
   while read line; do
     info_type="$(echo "${line}" | cut -f1 -d: | tr ' ' '_')"
     # @see https://unix.stackexchange.com/questions/102008/how-do-i-trim-leading-and-trailing-whitespace-from-each-line-of-some-output
@@ -117,13 +118,15 @@ extract_labels_from_smartctl_info() {
     Product) product="${info_value}" ;;
     Revision) revision="${info_value}" ;;
     Logical_Unit_id) lun_id="${info_value}" ;;
+    Rotation_Rate) rotation_rate="${info_value}" ;;
     esac
   done
-  echo "disk=\"${disk}\",type=\"${disk_type}\",vendor=\"${vendor}\",product=\"${product}\",revision=\"${revision}\",lun_id=\"${lun_id}\",model_family=\"${model_family}\",device_model=\"${device_model}\",serial_number=\"${serial_number}\",firmware_version=\"${fw_version}\""
+  echo "disk=\"${disk}\",type=\"${disk_type}\",vendor=\"${vendor}\",product=\"${product}\",revision=\"${revision}\",lun_id=\"${lun_id}\",model_family=\"${model_family}\",device_model=\"${device_model}\",serial_number=\"${serial_number}\",firmware_version=\"${fw_version}\",rotation_rate=\"${rotation_rate}\""
 }
 
 parse_smartctl_info() {
-  local -i smart_available=0 smart_enabled=0 smart_healthy=0 sector_size_log=512 sector_size_phy=512
+  local -i smart_available=0 smart_enabled=0 smart_healthy=0
+  local -i sector_size_log=512 sector_size_phy=512 user_capacity=0
   local labels="$1"
   while read line; do
     info_type="$(echo "${line}" | cut -f1 -d: | tr ' ' '_')"
@@ -151,6 +154,8 @@ parse_smartctl_info() {
     elif [[ "${info_type}" == 'Sector_Sizes' ]]; then
       sector_size_log="$(echo "$info_value" | cut -d' ' -f1)"
       sector_size_phy="$(echo "$info_value" | cut -d' ' -f4)"
+    elif [[ "${info_type}" == 'User_Capacity' ]]; then
+      user_capacity="$(echo "$info_value" | cut -d ' ' -f1  | sed 's/,//g' | awk '{$1=$1};1')"
     fi
   done
   echo "device_smart_available{${labels}} ${smart_available}"
@@ -158,6 +163,7 @@ parse_smartctl_info() {
   echo "device_smart_healthy{${labels}} ${smart_healthy}"
   echo "device_sector_size_logical{${labels}} ${sector_size_log}"
   echo "device_sector_size_physical{${labels}} ${sector_size_phy}"
+  echo "device_user_capacity{${labels}} ${user_capacity}"
 }
 
 parse_smartctl_returnvalue() {
