@@ -1,10 +1,13 @@
 package prometheus_smart_exporter
 
 import (
-	"github.com/allegro/bigcache"
-	"github.com/gobuffalo/packr/v2"
+	"fmt"
+	"io/ioutil"
 	"os/exec"
 	"time"
+
+	"github.com/allegro/bigcache"
+	"github.com/markbates/pkger"
 )
 
 const ScriptResultKey = "result"
@@ -18,11 +21,18 @@ func init() {
 }
 
 func GetScript() (string, error) {
-	// set up a new box by giving it a (relative) path to a folder on disk:
-	box := packr.New("scripts", "./scripts")
+	file, err := pkger.Open("/scripts/smartmon.sh")
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
 
-	// Get the string representation of a file, or an error if it doesn't exist:
-	return box.FindString("smartmon.sh")
+	if output, err := ioutil.ReadAll(file); err != nil {
+		return "", err
+	} else {
+		fmt.Println(string(output))
+		return string(output), nil
+	}
 }
 
 func RunScript() (string, error) {

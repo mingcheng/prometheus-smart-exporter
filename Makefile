@@ -1,6 +1,6 @@
-.PHONY: all build clean test packr2
+.PHONY: all build clean test pkger
 
-VERSION=0.0.1
+VERSION=0.0.2
 BIN=./smart-exporter
 DIR_SRC=./cmd/smart-exporter
 
@@ -12,17 +12,15 @@ GOPATH=$(shell `which go` env GOPATH)
 
 all: clean build
 
-packr2:
-	@go get -u github.com/gobuffalo/packr/v2/...
-	@go get -u github.com/gobuffalo/packr/v2/packr2
+pkger:
+	@go get github.com/markbates/pkger/cmd/pkger
 
-build: packr2 $(DIR_SRC)
-	@$(GOPATH)/bin/packr2 build
+build: pkger
+	@$(GOPATH)/bin/pkger -include /scripts
 	@$(GO) build $(GO_FLAGS) -o $(BIN) $(DIR_SRC)
 
-clean: packr2
-	@packr2 clean
-	@rm -f $(BIN)
+clean: pkger
+	@rm -f $(BIN) ./pkged.go
 	@$(GO) clean ./...
 
 test:
