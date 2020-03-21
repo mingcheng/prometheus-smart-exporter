@@ -24,6 +24,17 @@ $1 ~ /^ *[0-9]+$/ && $2 ~ /^[a-zA-Z0-9_-]+$/ {
 SMARTCTLAWK
 )"
 
+parse_smartctl_attributes_awk_nvme="$(
+  cat <<'SMARTCTLAWK'
+  /:/ {
+    print $0
+    gsub(/^[ \t]+/, "", $2);
+    gsub(/ /, "_", $1);
+    printf "%s_value{%s} %d\n", tolower($1), labels, $2
+  }
+SMARTCTLAWK
+)"
+
 smartmon_attrs="$(
   cat <<'SMARTMONATTRS'
 airflow_temperature_cel
@@ -45,6 +56,8 @@ offline_uncorrectable
 power_cycle_count
 power_cycles
 power_on_hours
+data_units_read
+data_units_written
 power_on_hours_and_msec
 unsafe_shutdowns
 program_fail_count
@@ -57,6 +70,7 @@ seek_error_rate
 spin_retry_count
 spin_up_time
 start_stop_count
+temperature
 temperature_case
 temperature_celsius
 temperature_internal
@@ -64,6 +78,7 @@ total_lbas_read
 total_lbas_written
 udma_crc_error_count
 unsafe_shutdown_count
+unsafe_shutdowns
 workld_host_reads_perc
 workld_media_wear_indic
 workload_minutes
@@ -72,11 +87,18 @@ SMARTMONATTRS
 smartmon_attrs="$(echo ${smartmon_attrs} | xargs | tr ' ' '|')"
 
 parse_smartctl_attributes() {
-  local labels="$1"
+  local labels="$1" result="$2"
   local vars="$(echo "${smartmon_attrs}" | xargs | tr ' ' '|')"
-  sed 's/^ \+//g' |
-    awk -v labels="${labels}" "${parse_smartctl_attributes_awk}" 2>/dev/null |
-    grep -iE "(${smartmon_attrs})"
+
+  if [[ $result == *"NVMe Log"* ]]; then
+    echo "$result" | sed 's/^ \+//g' |
+      awk -F: -v labels="${labels}" "${parse_smartctl_attributes_awk_nvme}" 2>/dev/null |
+      grep -iE "(${smartmon_attrs})"
+  else
+    echo "$result" | sed 's/^ \+//g' |
+      awk -v labels="${labels}" "${parse_smartctl_attributes_awk}" 2>/dev/null |
+      grep -iE "(${smartmon_attrs})"
+  fi
 }
 
 parse_smartctl_scsi_attributes() {
@@ -150,7 +172,11 @@ parse_smartctl_info() {
     fi
     if [[ "${info_type}" == 'SMART_overall-health_self-assessment_test_result' ]]; then
       case "${info_value:0:6}" in
-      PASSED) smart_healthy=1 ;;
+      PASSED)
+        smart_available=1
+        smart_enabled=1
+        smart_healthy=1
+        ;;
       esac
     elif [[ "${info_type}" == 'SMART_Health_Status' ]]; then
       case "${info_value:0:2}" in
@@ -279,8 +305,12 @@ for device in ${device_list[@]}; do
 
   # Get the SMART attributes
   case ${type} in
-  atacam | sat | auto) smartctl -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk_labels}" || true ;;
-  sat+megaraid*) smartctl -A -d "${type}" "${disk}" | parse_smartctl_attributes "${disk_labels}" || true ;;
+  atacam | sat | auto)
+    parse_smartctl_attributes "${disk_labels}" "$(smartctl -A -d ${type} ${disk})"
+    ;;
+  sat+megaraid*)
+    parse_smartctl_attributes "${disk_labels}" "$(smartctl -A -d ${type} ${disk})"
+    ;;
   scsi) smartctl -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk_labels}" || true ;;
   megaraid*) smartctl -A -d "${type}" "${disk}" | parse_smartctl_scsi_attributes "${disk_labels}" || true ;;
   *)
