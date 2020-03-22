@@ -7,17 +7,26 @@ I found have some buggy and can not running on FreeBSD. So, I forked and modifie
 ## Feature
 
 * Written in #Golang
-* Full tested on Linux and FreeBSD
+* Full tested on Linux and FreeBSD (Sorry for Windows)
+* NVMe driver supported
 * Simply metrics HTTP supported(with cache for performance issue)
 * The BASH script is builtin, simplify to deploy
 * If you don't wanna binary #Golang, just run `scripts/smartmon.sh`
 
 ## Building
 
-Building is fairly straight, Just `make` it, that's all :-P
+Building is fairly straight, After install golang package and `make` it, that's all :-P
 
 ## Deploy and Usage
 
-@TODO
+You need to install `smartmontools` package on your system first. Then run  `smart-exporter` binary with root privilege (smartctl need it). visit and check:
+
+* `http://<machine-address>:9111/metrics` // metrics details for prometheus
+* `http://<machine-address>:9111/script` // dumped core shell script
+* `http://<machine-address>:9111/version` // version and build information
+
+and there are simple startup scripts in `systemd` or `supervisor` directory, if you are using `systemd`(on most GNU/Linux distortion) or `supervisord`.
+
+That's it! If your have any suggestion, contact me by mail.
 
 `- eof -`
