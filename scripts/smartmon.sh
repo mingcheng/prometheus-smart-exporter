@@ -26,10 +26,10 @@ SMARTCTLAWK
 
 parse_smartctl_attributes_awk_nvme="$(
   cat <<'SMARTCTLAWK'
-  /:/ {
+  NF == 2 && $0 ~ /^[A-Za-z ]+:/ {
     print $0
     gsub(/^[ \t]+/, "", $2);
-    gsub(/ /, "_", $1);
+    gsub(/[ \.]+/, "_", $1);
     printf "%s_value{%s} %d\n", tolower($1), labels, $2
   }
 SMARTCTLAWK
@@ -70,10 +70,10 @@ seek_error_rate
 spin_retry_count
 spin_up_time
 start_stop_count
-temperature
 temperature_case
 temperature_celsius
 temperature_internal
+temperature
 total_lbas_read
 total_lbas_written
 udma_crc_error_count
@@ -91,9 +91,9 @@ parse_smartctl_attributes() {
   local vars="$(echo "${smartmon_attrs}" | xargs | tr ' ' '|')"
 
   if [[ $result == *"NVMe Log"* ]]; then
-    echo "$result" | sed 's/^ \+//g' |
+    echo "$result" |
       awk -F: -v labels="${labels}" "${parse_smartctl_attributes_awk_nvme}" 2>/dev/null |
-      grep -iE "(${smartmon_attrs})"
+      grep -E "(${smartmon_attrs})"
   else
     echo "$result" | sed 's/^ \+//g' |
       awk -v labels="${labels}" "${parse_smartctl_attributes_awk}" 2>/dev/null |
