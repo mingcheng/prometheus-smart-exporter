@@ -4,6 +4,7 @@ After=network-online.target
 
 [Service]
 ExecStart=/usr/local/bin/smart-exporter
+Environment=PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 [Install]
 WantedBy=network-online.target

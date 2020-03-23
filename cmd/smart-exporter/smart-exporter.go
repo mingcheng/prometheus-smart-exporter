@@ -43,10 +43,9 @@ func main() {
 	e.GET("/metrics", func(context echo.Context) error {
 		output, err := exporter.RunScript()
 		if err != nil {
-			return context.NoContent(http.StatusInternalServerError)
-		} else {
-			return context.String(http.StatusOK, output)
+			return context.String(http.StatusInternalServerError, err.Error())
 		}
+		return context.String(http.StatusOK, output)
 	})
 
 	e.GET("/version", func(context echo.Context) error {
@@ -54,11 +53,11 @@ func main() {
 	})
 
 	e.GET("/script", func(context echo.Context) error {
-		if script, err := exporter.GetScript(); err != nil {
+		script, err := exporter.GetScript()
+		if err != nil {
 			return context.NoContent(http.StatusNotFound)
-		} else {
-			return context.String(http.StatusOK, script)
 		}
+		return context.String(http.StatusOK, script)
 	})
 
 	_ = e.Start(":9111")

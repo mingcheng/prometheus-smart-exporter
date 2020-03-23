@@ -43,10 +43,11 @@ func RunScript() (string, error) {
 		return "", err
 	}
 
-	if output, err := exec.Command("bash", "-c", script).CombinedOutput(); err != nil {
+	output, err := exec.Command("bash", "-c", script).CombinedOutput()
+	if len(output) <= 0 && err != nil {
 		return "", err
-	} else {
-		_ = cache.Set(ScriptResultKey, output)
-		return string(output), nil
 	}
+
+	_ = cache.Set(ScriptResultKey, output)
+	return string(output), nil
 }

@@ -1,32 +1,31 @@
-# S.M.A.R.T export for Prometheus
+# SMART exporter for Prometheus
 
-This project is inspire from https://grafana.com/grafana/dashboards/10664 .
-That Grafana dashboard provide a simple [BASH script](https://github.com/janw/node-exporter-textfile-collector-scripts/blob/master/smartmon.sh) which
-I found have some buggy and can not running on FreeBSD. So, I forked and modified this script and add some necessary features.
+Tips: [English version is here.](README_EN.md)
 
-## Feature
+这个项目源自  https://grafana.com/grafana/dashboards/10664   的 [BASH 脚本](https://github.com/janw/node-exporter-textfile-collector-scripts/blob/master/smartmon.sh) 。但其有部分的 Bug 没有处理，同时写与 2012 年所以并不支持如 NVMe 等较新的硬件，因此改造增强了这个脚本并使用 Golang 封装以支持 HTTP 输出方便部署。
 
-* Written in #Golang
-* Full tested on Linux and FreeBSD (Sorry for Windows)
-* NVMe driver supported
-* Simply metrics HTTP supported(with cache for performance issue)
-* The BASH script is builtin, simplify to deploy
-* If you don't wanna binary #Golang, just run `scripts/smartmon.sh`
+## 特性
 
-## Building
+* 完全使用 Goalng 编写
+* 在 macOS、Linux 以及 FreeBSD 下经过完全的测试
+* 支持 NVMe 磁盘
+* 简单的 HTTP 服务器（并增加了缓存功能）
+* 将 BASH 脚本内置增加安全性和方便部署
+* 当然，如果不想使用二进制文件，直接执行 `scripts/smartmon.sh`
 
-Building is fairly straight, After install golang package and `make` it, that's all :-P
+## 编译
 
-## Deploy and Usage
+编译相对简单，安装完 Golang 环境以后，直接使用 `make` 即可。
 
-You need to install `smartmontools` package on your system first. Then run  `smart-exporter` binary with root privilege (smartctl need it). visit and check:
+## 部署
+
+
+首先在你的系统上安装  `smartmontools`  这个软件包，然后执行 `smart-exporter` 即可，无需任何的配置。访问如下地址：
 
 * `http://<machine-address>:9111/metrics` // metrics details for prometheus
-* `http://<machine-address>:9111/script` // dumped core shell script
+* `http://<machine-address>:9111/script` // dump shell script
 * `http://<machine-address>:9111/version` // version and build information
 
-and there are simple startup scripts in `systemd` or `supervisor` directory, if you are using `systemd`(on most GNU/Linux distortion) or `supervisord`.
+对应的 `systemd` 和 `supervisor` 有相应的启动脚本供参考。如有任何的意见和建议，欢迎邮件联系，非常感谢。
 
-That's it! If your have any suggestion, contact me by mail.
-
-`- eof -`
+`- eof-`
