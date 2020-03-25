@@ -1,0 +1,18 @@
+{
+  "files.exclude": {
+    "**/.classpath": true,
+    "**/.project": true,
+    "**/.settings": true,
+    "**/.factorypath": true,
+    "**/pkged.go": true
+  },
+  "workbench.colorTheme": "Quiet Light",
+  "files.autoSave": "onFocusChange",
+  "go.buildOnSave": "off",
+  "go.lintOnSave": "file",
+  "go.vetOnSave": "off",
+  "go.coverOnSave": false,
+  "go.useCodeSnippetsOnFunctionSuggest": true,
+  "go.formatTool": "goreturns",
+  "go.gocodeAutoBuild": false
+}
