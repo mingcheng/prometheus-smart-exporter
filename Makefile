@@ -25,8 +25,8 @@ clean: pkger
 
 install: $(BIN)
 	@install -m 0755 $(BIN) /usr/local/bin/
-	@if [ -d "/etc/systemd/system" ]; then install -m 0644 ./systemd/smart-exporter.service /etc/systemd/system; fi
-	@if [ -d "/etc/supervisor.d/" ]; then install -m 0644 ./supervisor/smart-exporter.ini /etc/supervisor.d; fi
+	@if [ -d "/etc/systemd/system" ]; then install -m 0644 ./systemd/prometheus-smart-exporter.service /etc/systemd/system; fi
+	@if [ -d "/etc/supervisor.d/" ]; then install -m 0644 ./supervisor/prometheus-smart-exporter.ini /etc/supervisor.d; fi
 
 test: build
 	@$(GO) test ./...
