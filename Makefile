@@ -1,4 +1,4 @@
-.PHONY: all build clean test pkger
+.PHONY: all build clean test pkger install
 
 VERSION=0.0.2
 BIN=./smart-exporter
@@ -22,6 +22,11 @@ build: pkger
 clean: pkger
 	@rm -f $(BIN) ./pkged.go
 	@$(GO) clean ./...
+
+install: $(BIN)
+	@install -m 0755 $(BIN) /usr/local/bin/
+	@if [ -d "/etc/systemd/system" ]; then install -m 0644 ./systemd/prometheus-smart-exporter.service /etc/systemd/system; fi
+	@if [ -d "/etc/supervisor.d/" ]; then install -m 0644 ./supervisor/prometheus-smart-exporter.ini /etc/supervisor.d; fi
 
 test: build
 	@$(GO) test ./...

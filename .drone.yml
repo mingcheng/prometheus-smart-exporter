@@ -9,7 +9,7 @@ name: build_on_docker
 
 steps:
   - name: build_and_test
-    image: golang:1.13.8
+    image: golang:1.13.9
     environment:
       GOPROXY: https://goproxy.cn
     commands:
