@@ -305,7 +305,7 @@ for device in ${device_list[@]}; do
 
   # Get the SMART attributes
   case ${type} in
-  atacam | sat | auto)
+  atacam | usbjmicron | sat | auto)
     parse_smartctl_attributes "${disk_labels}" "$(smartctl -A -d ${type} ${disk})"
     ;;
   sat+megaraid*)
