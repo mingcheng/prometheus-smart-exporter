@@ -13,7 +13,7 @@ GOPATH=$(shell `which go` env GOPATH)
 all: clean build
 
 pkger:
-	@go get github.com/markbates/pkger/cmd/pkger
+	@go install github.com/markbates/pkger/cmd/pkger@latest
 
 build: pkger
 	@$(GOPATH)/bin/pkger -include /scripts
